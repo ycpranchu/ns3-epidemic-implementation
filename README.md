@@ -1,5 +1,5 @@
 # NS-3-Epidemic-Implementation
-Delay Tolerant Network(DTN) Implementation: Epidemic, based on NS-3.
+Delay Tolerant Network (DTN) Implementation: Epidemic, based on NS-3.
 
 ### cp epidemic.cc file into ns-3 scratch folder
 ```
