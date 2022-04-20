@@ -511,21 +511,21 @@ int main(int argc, char *argv[])
     wifiMac.SetType("ns3::AdhocWifiMac");
     NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, c);
 
-    Ns2MobilityHelper ns2 = Ns2MobilityHelper("/home/ycpin/mobility_test.tcl");
-    ns2.Install(); // configure movements for each node, while reading trace file
+    // Ns2MobilityHelper ns2 = Ns2MobilityHelper("/home/ycpin/mobility_test.tcl");
+    // ns2.Install(); // configure movements for each node, while reading trace file
 
-    // MobilityHelper mobility;
-    // mobility.SetPositionAllocator ("ns3::RandomDiscPositionAllocator",
-    //                                 "X", StringValue ("5000.0"),
-    //                                 "Y", StringValue ("5000.0"),
-    //                                 "Theta", StringValue ("ns3::UniformRandomVariable[Min=-1000.0|Max=1000.0]"),
-    //                                 "Rho", StringValue ("ns3::UniformRandomVariable[Min=1000.0|Max=5000.0]"));
-    // mobility.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
-    //                             "Mode", StringValue ("Time"),
-    //                             "Time", StringValue ("45s"),
-    //                             "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=5.0]"),// 18 km/h
-    //                             "Bounds", StringValue ("0|10000|0|10000"));
-    // mobility.InstallAll();
+    MobilityHelper mobility;
+    mobility.SetPositionAllocator ("ns3::RandomDiscPositionAllocator",
+                                    "X", StringValue ("5000.0"),
+                                    "Y", StringValue ("5000.0"),
+                                    "Theta", StringValue ("ns3::UniformRandomVariable[Min=-1000.0|Max=1000.0]"),
+                                    "Rho", StringValue ("ns3::UniformRandomVariable[Min=1000.0|Max=5000.0]"));
+    mobility.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
+                                "Mode", StringValue ("Time"),
+                                "Time", StringValue ("45s"),
+                                "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=5.0]"),// 18 km/h
+                                "Bounds", StringValue ("0|10000|0|10000"));
+    mobility.InstallAll();
 
     InternetStackHelper internet;
     internet.Install(c);
