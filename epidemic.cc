@@ -46,7 +46,7 @@ typedef struct
     double ttl;
 } PacketLogData;
 
-std::string debugLevel = "NORMAL"; //["NONE","NORMAL","MAX","EXTRACTOR"]
+std::string debugLevel = "MAX"; //["NONE","NORMAL","MAX","EXTRACTOR"]
 std::vector<PacketLogData> dataForPackets;
 std::vector<std::vector<std::string>> existNode;
 NodeContainer c;
@@ -304,11 +304,9 @@ void ReceivePacket(Ptr<Socket> socket)
     while (pkt = socket->RecvFrom(from))
     {
         NodeHandler *currentNode = &nodeHandlerArray[socket->GetNode()->GetId()];
-
-        currentNode->increaseBytesReceived();
-        currentNode->increasePacketsReceived(1);
-
         ipSender = InetSocketAddress::ConvertFrom(from).GetIpv4();
+
+        currentNode->increasePacketsReceived(1);
 
         Ptr<Ipv4> ipv4 = socket->GetNode()->GetObject<Ipv4>();
         Ipv4InterfaceAddress iaddr = ipv4->GetAddress(1, 0);
@@ -323,8 +321,10 @@ void ReceivePacket(Ptr<Socket> socket)
         Ipv4Address destinationAddress = payload.getDestinationAddress();
         std::string previousAddressUid = createStringAddressUid(ipSender, (int)UID, ";");
 
-        if (currentNode->searchInReceived(previousAddressUid) == false) {
+        if (currentNode->searchInReceived(previousAddressUid) == false)
+        {
             currentNode->pushInReceived(ipSender, UID);
+            currentNode->increaseBytesReceived();
             currentNode->increaseBuffer();
         }
 
@@ -388,7 +388,7 @@ void ReceivePacket(Ptr<Socket> socket)
 int main(int argc, char *argv[])
 {
     std::string phyMode("DsssRate11Mbps");
-    double distance = 500;
+    double distance = 600;
     interval = 1;
 
     // double simulationTime = 569.00;
@@ -437,13 +437,10 @@ int main(int argc, char *argv[])
         std::istream_iterator<std::string> end;
         std::vector<std::string> tokens(begin, end);
 
-        // for (uint32_t i = 0; i < numPair * 2; ++i) {
-        //     tokens.push_back(std::to_string(i));
-        // }
-
-        // for (std::vector<std::string>::iterator iter = tokens.begin(); iter != tokens.end(); iter++)
-        //     std::cout << *iter << " ";
-        // std::cout << std::endl;
+        for (uint32_t i = 0; i < numPair * 2; ++i)
+        {
+            tokens.push_back(std::to_string(i));
+        }
 
         existNode.push_back(tokens);
     }
@@ -486,7 +483,7 @@ int main(int argc, char *argv[])
     Ipv4AddressHelper ipv4;
     NS_LOG_INFO("Assign IP Addresses.");
     ipv4.SetBase("10.1.0.0", "255.255.0.0");
-    Ipv4InterfaceContainer container = ipv4.Assign(devices);
+    Ipv4InterfaceContainer i = ipv4.Assign(devices);
 
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
     InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), 80);
@@ -504,16 +501,16 @@ int main(int argc, char *argv[])
     {
         for (uint32_t i = 0; i < numPair; i++)
         {
-            sinkNode = i * 2; // destination Id
-            sourceNode = i * 2 + 1; // source Id
-
-            // destination node
-            Ipv4InterfaceAddress iaddr = c.Get(sinkNode)->GetObject<Ipv4>()->GetAddress(1, 0);
-            Ipv4Address ipReceiver = iaddr.GetLocal();
+            sourceNode = i * 2;
+            sinkNode = i * 2 + 1;
 
             // source node
             Ipv4InterfaceAddress iaddrSender = c.Get(sourceNode)->GetObject<Ipv4>()->GetAddress(1, 0);
             Ipv4Address ipSender = iaddrSender.GetLocal();
+
+            // destination node
+            Ipv4InterfaceAddress iaddr = c.Get(sinkNode)->GetObject<Ipv4>()->GetAddress(1, 0);
+            Ipv4Address ipReceiver = iaddr.GetLocal();
 
             // broadcast
             Ptr<Socket> source = Socket::CreateSocket(c.Get(sourceNode), tid);
@@ -562,7 +559,7 @@ int main(int argc, char *argv[])
         else if (debugLevel != "NONE")
         {
             NS_LOG_UNCOND("- Packets " << i + 1 << " delta delivery: \t" << 0);
-            NS_LOG_UNCOND("- Packets " << i + 1 << " End-to-End Delay: \t" << 0);
+            NS_LOG_UNCOND("- Packets " << i + 1 << " TTL/HOPS: \t" << 0);
         }
     }
     if (debugLevel != "NONE")
