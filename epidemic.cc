@@ -291,7 +291,9 @@ static void GenerateTraffic(Ptr<Socket> socket, Ptr<Packet> packet, uint32_t UID
         currentNode->increasePacketsSent(1);
         currentNode->decreaseBuffer();
 
-        Simulator::Schedule(Seconds(interval), &GenerateTraffic, socket, packet, UID, previousAddressUid, ttl);
+        Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+        double randomPause = x->GetValue(0, 0.01);
+        Simulator::Schedule(Seconds(randomPause), &GenerateTraffic, socket, packet, UID, previousAddressUid, ttl);
     }
 }
 
@@ -355,10 +357,9 @@ void ReceivePacket(Ptr<Socket> socket)
                     Ptr<Packet> packet = payload.toPacket();
                     NS_LOG_UNCOND(Simulator::Now().GetSeconds() << "s\t" << ipReceiver << "    " << socket->GetNode()->GetId() << "\tGoing to RE-send packet with uid: " << UID);
 
-                    // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
-                    // double randomPause = x->GetValue(0.1, 1.0);
-
-                    Simulator::Schedule(Seconds(interval), &GenerateTraffic, socket, packet, UID, previousAddressUid, TTL);
+                    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+                    double randomPause = x->GetValue(0, 0.01);
+                    Simulator::Schedule(Seconds(randomPause), &GenerateTraffic, socket, packet, UID, previousAddressUid, TTL);
                 }
                 else
                 {
@@ -388,12 +389,13 @@ void ReceivePacket(Ptr<Socket> socket)
 int main(int argc, char *argv[])
 {
     std::string phyMode("DsssRate11Mbps");
-    double distance = 600;
+    double distance = 400;
     interval = 1;
 
     // double simulationTime = 569.00;
     double simulationTime = 60.00;
-    double sendUntil = 20.00;
+    double sendUntil = 30.00;
+    double warmingTime = 5.00;
     uint32_t seed = 91;
 
     uint32_t numPair = 50;
@@ -403,7 +405,7 @@ int main(int argc, char *argv[])
     uint32_t sourceNode;
 
     uint32_t TTL = 50;
-    uint32_t UID = 0;
+    uint32_t UID = 1;
 
     CommandLine cmd;
     cmd.AddValue("phyMode", "Wifi Phy mode", phyMode);
@@ -437,15 +439,14 @@ int main(int argc, char *argv[])
         std::istream_iterator<std::string> end;
         std::vector<std::string> tokens(begin, end);
 
-        for (uint32_t i = 0; i < numPair * 2; ++i)
-        {
-            tokens.push_back(std::to_string(i));
-        }
+        // for (uint32_t i = 0; i < numPair * 2; ++i)
+        // {
+        //     tokens.push_back(std::to_string(i));
+        // }
 
         existNode.push_back(tokens);
     }
     file.close();
-
     SeedManager::SetSeed(seed);
 
     // The below set of helpers will help us to put together the wifi NICs we want
@@ -497,7 +498,10 @@ int main(int argc, char *argv[])
         recvSinkArray[i]->SetRecvCallback(MakeCallback(&ReceivePacket));
     }
 
-    for (double t = 0; t < simulationTime - sendUntil; t += sendAfter)
+    PacketLogData dataPacket = {false, -1, 0.00, 0};
+    dataForPackets.push_back(dataPacket); // for packet UID 0
+
+    for (double t = warmingTime; t < simulationTime - sendUntil; t += sendAfter)
     {
         for (uint32_t i = 0; i < numPair; i++)
         {
@@ -524,15 +528,15 @@ int main(int argc, char *argv[])
             payload.setDestinationAddress(ipReceiver);
             Ptr<Packet> packet = payload.toPacket();
 
-            PacketLogData dataPacket = {false, -1, 0.00, 0};
             dataForPackets.push_back(dataPacket);
 
-            Simulator::Schedule(Seconds(t), &GenerateTraffic, source, packet, UID, createStringAddressUid(ipSender, (int)UID, ";"), TTL);
+            Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+            double randomPause = x->GetValue(0, 0.01);
+            Simulator::Schedule(Seconds(t + randomPause), &GenerateTraffic, source, packet, UID, createStringAddressUid(ipSender, (int)UID, ";"), TTL);
+
             UID += 1;
         }
     }
-
-    AnimationInterface anim("epidemic-anim.xml");
 
     Simulator::Stop(Seconds(simulationTime));
     Simulator::Run();
@@ -543,7 +547,7 @@ int main(int argc, char *argv[])
     int deliveredCounter = 0;
     double end2endDelay = 0.0;
 
-    for (int i = 0; i < (int)dataForPackets.size(); i++)
+    for (int i = 1; i < (int)dataForPackets.size(); i++)
     {
         if (dataForPackets[i].delivered == true)
         {
@@ -552,26 +556,26 @@ int main(int argc, char *argv[])
 
             if (debugLevel != "NONE")
             {
-                NS_LOG_UNCOND("- Packets " << i + 1 << " delta delivery: \t" << (double)(dataForPackets[i].delivered_at - dataForPackets[i].start));
-                NS_LOG_UNCOND("- Packets " << i + 1 << " End-to-End Delay: \t" << (double)(dataForPackets[i].delivered_at - dataForPackets[i].start));
+                NS_LOG_UNCOND("- Packets " << i << " delta delivery: \t" << (double)(dataForPackets[i].delivered_at - dataForPackets[i].start));
+                NS_LOG_UNCOND("- Packets " << i << " End-to-End Delay: \t" << (double)(dataForPackets[i].delivered_at - dataForPackets[i].start));
             }
         }
         else if (debugLevel != "NONE")
         {
-            NS_LOG_UNCOND("- Packets " << i + 1 << " delta delivery: \t" << 0);
-            NS_LOG_UNCOND("- Packets " << i + 1 << " TTL/HOPS: \t" << 0);
+            NS_LOG_UNCOND("- Packets " << i << " delta delivery: \t" << 0);
+            NS_LOG_UNCOND("- Packets " << i << " End-to-End Delay: \t" << 0);
         }
     }
     if (debugLevel != "NONE")
     {
-        NS_LOG_UNCOND("- Packets sent: \t" << (int)dataForPackets.size());
+        NS_LOG_UNCOND("- Packets sent: \t" << (int)dataForPackets.size() - 1);
         NS_LOG_UNCOND("- Packets delivered: \t" << deliveredCounter);
-        NS_LOG_UNCOND("- Delivery percentage: \t" << ((double)deliveredCounter / (double)dataForPackets.size()) * 100.00 << "%");
-        // Delivery time (?) (?) (?)
+        NS_LOG_UNCOND("- Delivery percentage: \t" << ((double)deliveredCounter / ((double)dataForPackets.size() - 1)) * 100.00 << "%");
     }
 
     double totalBytesSent = 0.00;
     double totalBytesReceived = 0.00;
+
     int totalPacketsSent = 0;
     int totalPacketsReceived = 0;
 
@@ -591,5 +595,6 @@ int main(int argc, char *argv[])
         NS_LOG_UNCOND("- Total PacketsReceived: \t" << totalPacketsReceived);
         NS_LOG_UNCOND("- Average End-to-End Delay: \t" << end2endDelay / deliveredCounter);
     }
+
     return 0;
 }
