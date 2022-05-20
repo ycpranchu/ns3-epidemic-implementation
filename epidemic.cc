@@ -165,7 +165,7 @@ public:
         packetsReceived = 0;
         attempt = 0;
         bufferSize = 0;
-        maxBufferSize = 5000000;
+        maxBufferSize = 10000000;
         packetSize = 1024;
     }
     double getBytesSent() { return bytesSent; }
@@ -291,9 +291,9 @@ static void GenerateTraffic(Ptr<Socket> socket, Ptr<Packet> packet, uint32_t UID
         currentNode->increasePacketsSent(1);
         currentNode->decreaseBuffer();
 
-        Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
-        double randomPause = x->GetValue(0, 0.01);
-        Simulator::Schedule(Seconds(randomPause), &GenerateTraffic, socket, packet, UID, previousAddressUid, ttl);
+        // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+        // double randomPause = x->GetValue(0, 0.01);
+        Simulator::Schedule(Seconds(0.1), &GenerateTraffic, socket, packet, UID, previousAddressUid, ttl);
     }
 }
 
@@ -357,9 +357,9 @@ void ReceivePacket(Ptr<Socket> socket)
                     Ptr<Packet> packet = payload.toPacket();
                     NS_LOG_UNCOND(Simulator::Now().GetSeconds() << "s\t" << ipReceiver << "    " << socket->GetNode()->GetId() << "\tGoing to RE-send packet with uid: " << UID);
 
-                    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
-                    double randomPause = x->GetValue(0, 0.01);
-                    Simulator::Schedule(Seconds(randomPause), &GenerateTraffic, socket, packet, UID, previousAddressUid, TTL);
+                    // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+                    // double randomPause = x->GetValue(0, 0.01);
+                    Simulator::Schedule(Seconds(0.1), &GenerateTraffic, socket, packet, UID, previousAddressUid, TTL);
                 }
                 else
                 {
@@ -389,13 +389,13 @@ void ReceivePacket(Ptr<Socket> socket)
 int main(int argc, char *argv[])
 {
     std::string phyMode("DsssRate11Mbps");
-    double distance = 400;
+    double distance = 600;
     interval = 1;
 
     // double simulationTime = 569.00;
-    double simulationTime = 60.00;
-    double sendUntil = 30.00;
-    double warmingTime = 5.00;
+    double simulationTime = 360.00;
+    double sendUntil = 50.00;
+    double warmingTime = 10.00;
     uint32_t seed = 91;
 
     uint32_t numPair = 50;
@@ -404,7 +404,7 @@ int main(int argc, char *argv[])
     uint32_t sinkNode;
     uint32_t sourceNode;
 
-    uint32_t TTL = 50;
+    uint32_t TTL = 150;
     uint32_t UID = 1;
 
     CommandLine cmd;
@@ -439,10 +439,10 @@ int main(int argc, char *argv[])
         std::istream_iterator<std::string> end;
         std::vector<std::string> tokens(begin, end);
 
-        // for (uint32_t i = 0; i < numPair * 2; ++i)
-        // {
-        //     tokens.push_back(std::to_string(i));
-        // }
+        for (uint32_t i = 0; i < numPair * 2; ++i)
+        {
+            tokens.push_back(std::to_string(i));
+        }
 
         existNode.push_back(tokens);
     }
@@ -530,9 +530,9 @@ int main(int argc, char *argv[])
 
             dataForPackets.push_back(dataPacket);
 
-            Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
-            double randomPause = x->GetValue(0, 0.01);
-            Simulator::Schedule(Seconds(t + randomPause), &GenerateTraffic, source, packet, UID, createStringAddressUid(ipSender, (int)UID, ";"), TTL);
+            // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable>();
+            // double randomPause = x->GetValue(0, 0.01);
+            Simulator::Schedule(Seconds(t), &GenerateTraffic, source, packet, UID, createStringAddressUid(ipSender, (int)UID, ";"), TTL);
 
             UID += 1;
         }
