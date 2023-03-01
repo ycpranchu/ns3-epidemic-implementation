@@ -438,6 +438,11 @@ int main(int argc, char *argv[])
         std::istream_iterator<std::string> begin(ss);
         std::istream_iterator<std::string> end;
         std::vector<std::string> tokens(begin, end);
+        
+        for (unsigned int i = 0; i < tokens.size(); ++i)
+        {
+            tokens[i] = std::to_string(std::stoi(tokens[i].c_str()) + numPair * 2);
+        }
 
         for (uint32_t i = 0; i < numPair * 2; ++i)
         {
